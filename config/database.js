@@ -1,22 +1,37 @@
-const mysql = require('mysql2');
-require('dotenv').config(); // Carga las variables de entorno desde .env
+require('dotenv').config();
+const mysql = require('mysql2/promise');
 
-// Crear conexión a la base de datos
-const connection = mysql.createPool({
-  host: process.env.DB_HOST,      // Dirección del servidor
-  user: process.env.DB_USER,      // Usuario
-  password: process.env.DB_PASSWORD, // Contraseña
-  database: process.env.DB_NAME,  // Nombre de la base de datos
+// Crear pool de conexiones
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT || 3306,
+  connectionLimit: 10, // Límite máximo de conexiones simultáneas
 });
 
 // Probar la conexión
-connection.getConnection((err, conn) => {
-  if (err) {
-    console.error('Error al conectar a la base de datos:', err);
-  } else {
+(async () => {
+  try {
+    const connection = await pool.getConnection(); // Obtener una conexión del pool
     console.log('Conexión a la base de datos exitosa.');
-    conn.release(); // Liberar conexión del pool
+    connection.release(); // Liberar la conexión al pool
+  } catch (err) {
+    switch (err.code) {
+      case 'PROTOCOL_CONNECTION_LOST':
+        console.error('Conexión con la base de datos perdida.');
+        break;
+      case 'ER_CON_COUNT_ERROR':
+        console.error('Demasiadas conexiones con la base de datos.');
+        break;
+      case 'ECONNREFUSED':
+        console.error('Conexión rechazada por la base de datos.');
+        break;
+      default:
+        console.error('Error al conectar a la base de datos:', err);
+    }
   }
-});
+})();
 
-module.exports = connection;
+module.exports = pool;

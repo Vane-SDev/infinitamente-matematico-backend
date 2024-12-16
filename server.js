@@ -1,58 +1,30 @@
+require('dotenv').config(); // Cargar variables de entorno
+
+
 const express = require('express');
 const bodyParser = require('body-parser');
+const errorHandler = require('./middlewares/errorHandler');
 const cors = require('cors');
-const connection = require('./config/database'); // Conexión a la base de datos
+const estudianteRoutes = require('./routes/estudiantes'); // Importar rutas
 
 const app = express();
 
-// Middleware
+// Middleware Procesan la solicitud del servidor
 app.use(bodyParser.json());
 app.use(cors());
 
 // Rutas de la API
+app.use('/api', estudianteRoutes); // Montar las rutas de estudiantes
 
-// Registrar un estudiante
-app.post('/api/register', (req, res) => {
-  const { nombre, pais, telefono, materia, fecha } = req.body;
-
-  const query = `
-    INSERT INTO estudiantes (nombre, pais, telefono, materia, fecha) 
-    VALUES (?, ?, ?, ?, ?)
-  `;
-
-  connection.query(query, [nombre, pais, telefono, materia, fecha], (err, results) => {
-    if (err) {
-      console.error('Error al registrar estudiante:', err);
-      res.status(500).send('Error al registrar estudiante');
-    } else {
-      res.status(201).json({ message: 'Registro exitoso', studentId: results.insertId });
-    }
-  });
-});
-
-// Obtener todos los estudiantes
-app.get('/api/estudiantes', (req, res) => {
-  const query = 'SELECT * FROM estudiantes';
-
-  connection.query(query, (err, results) => {
-    if (err) {
-      console.error('Error al obtener estudiantes:', err);
-      res.status(500).send('Error al obtener estudiantes');
-    } else {
-      res.status(200).json(results);
-    }
-  });
-});
-
+// Manejo de rutas no encontradas
 app.use((req, res) => {
   res.status(404).json({ error: 'Ruta no encontrada' });
 });
+
+// Middleware de manejo de errores: si hay errores en las rutas se pasan aca
+app.use(errorHandler);
 
 // Iniciar el servidor
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor corriendo en http://localhost:${PORT}`));
 
-
-app.use((req, res) => {
-  res.status(404).json({ error: 'Ruta no encontrada' });
-});

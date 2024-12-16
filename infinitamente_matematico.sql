@@ -1,0 +1,1 @@
+SELECT * FROM infinitamente_matematico.calendario_disponible;
